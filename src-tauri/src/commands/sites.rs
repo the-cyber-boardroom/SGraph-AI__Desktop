@@ -32,7 +32,7 @@ pub fn get_sites() -> Vec<SiteConfig> {
         SiteConfig {
             id: "tools".to_string(),
             name: "Tools".to_string(),
-            url: "https://tools.sgraph.ai".to_string(),
+            url: "https://dev.tools.sgraph.ai".to_string(),
             icon: "tools".to_string(),
         },
     ]

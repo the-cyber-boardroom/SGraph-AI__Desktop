@@ -3,7 +3,7 @@
     { "id": "send",      "name": "Send",      "url": "https://send.sgraph.ai",      "icon": "send" },
     { "id": "vault",     "name": "Vault",     "url": "https://vault.sgraph.ai",     "icon": "vault" },
     { "id": "workspace", "name": "Workspace", "url": "https://workspace.sgraph.ai", "icon": "workspace" },
-    { "id": "tools",     "name": "Tools",     "url": "https://tools.sgraph.ai",     "icon": "tools" }
+    { "id": "tools",     "name": "Tools",     "url": "https://dev.tools.sgraph.ai",     "icon": "tools" }
   ],
   "default": "send"
 }
