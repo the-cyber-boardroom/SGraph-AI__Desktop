@@ -50,7 +50,6 @@ pub fn activate_site(window: tauri::Window, site_id: String, url: String) -> Res
 }
 
 /// Toggle DevTools on a site's native webview.
-/// After toggling, re-apply position so the sidebar stays visible.
 #[tauri::command]
 pub fn toggle_devtools(window: tauri::Window, site_id: String) -> Result<(), String> {
     let label = format!("site-{}", site_id);
@@ -64,14 +63,6 @@ pub fn toggle_devtools(window: tauri::Window, site_id: String) -> Result<(), Str
             break;
         }
     }
-
-    // Re-apply position after a short delay so DevTools layout settles
-    let win = window.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        resize_all(&win);
-    });
-
     Ok(())
 }
 
