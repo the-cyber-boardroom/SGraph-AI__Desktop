@@ -14,6 +14,10 @@ on:
         required: false
         type: boolean
         default: false
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 90
     secrets:
       APPLE_CERTIFICATE:
         required: false
@@ -124,12 +128,14 @@ jobs:
         with:
           name: SGraph-Desktop-aarch64-dmg
           path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: ${{ inputs.artifact_retention_days }}
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
           name: SGraph-Desktop-aarch64-app
           path: src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          retention-days: ${{ inputs.artifact_retention_days }}
 
   increment-tag:
     name: Increment Tag
