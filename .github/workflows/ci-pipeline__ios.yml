@@ -65,19 +65,25 @@ jobs:
             cargo tauri ios init
           fi
 
+      - name: Check signing configuration
+        id: signing
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+        run: |
+          if [ -n "$IOS_CERTIFICATE" ]; then
+            echo "has_signing=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_signing=false" >> $GITHUB_OUTPUT
+            echo "No iOS certificate configured — will build unsigned (simulator only)"
+          fi
+
       - name: Import iOS certificate
+        if: steps.signing.outputs.has_signing == 'true'
         env:
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
           IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
         run: |
-          if [ -z "$IOS_CERTIFICATE" ]; then
-            echo "No iOS certificate configured — skipping code signing"
-            echo "Build will produce unsigned .app (simulator only)"
-            exit 0
-          fi
-
-          # Import certificate
           CERTIFICATE_PATH=$RUNNER_TEMP/ios_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/ios-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
@@ -103,14 +109,13 @@ jobs:
             cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           fi
 
-      - name: Build iOS app
+      - name: Build iOS app (signed)
+        if: steps.signing.outputs.has_signing == 'true'
         run: cargo tauri ios build
-        continue-on-error: true
-        id: build
 
-      - name: Build iOS app (unsigned — no signing secrets)
-        if: steps.build.outcome == 'failure'
-        run: cargo tauri ios build -- -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO
+      - name: Build iOS app (unsigned)
+        if: steps.signing.outputs.has_signing == 'false'
+        run: cargo tauri ios build -- CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
       - name: Find build output
         id: output
