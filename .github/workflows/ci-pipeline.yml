@@ -48,6 +48,7 @@ jobs:
   build:
     name: "Build macOS (${{ matrix.arch }})"
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
     needs: [increment-tag]
     if: always() && !failure() && !cancelled()
     strategy:
