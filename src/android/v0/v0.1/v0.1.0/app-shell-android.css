@@ -1,0 +1,57 @@
+.app-shell-android {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.app-content-android {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--sg-bg);
+}
+
+/* Welcome screen */
+.welcome-screen-android {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-screen-android .welcome-content {
+    text-align: center;
+    padding: 20px;
+}
+
+.welcome-screen-android .welcome-logo {
+    font-size: 36px;
+    font-weight: 300;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+}
+
+.welcome-screen-android .welcome-sg {
+    color: var(--sg-accent);
+    font-weight: 600;
+}
+
+.welcome-screen-android .welcome-slash {
+    color: var(--sg-text-dim);
+    margin: 0 2px;
+}
+
+.welcome-screen-android .welcome-product {
+    color: var(--sg-text);
+}
+
+.welcome-screen-android .welcome-text {
+    color: var(--sg-text-dim);
+    font-size: 16px;
+}

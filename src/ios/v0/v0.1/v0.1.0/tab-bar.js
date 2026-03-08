@@ -1,4 +1,4 @@
-import { EventBus } from '/lib/event-bus.js'
+import { EventBus } from '/core/lib/event-bus.js'
 
 const SITE_ICONS = {
     send: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -17,15 +17,11 @@ const SITE_ICONS = {
     </svg>`,
 }
 
-const SETTINGS_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-</svg>`
-
 /**
- * Sidebar component for site navigation.
- * Displays site icons vertically with active state highlighting.
+ * iOS-style bottom tab bar for site navigation.
+ * Large touch targets, safe area padding at bottom.
  */
-class SgSidebar extends HTMLElement {
+class SgTabBar extends HTMLElement {
     constructor() {
         super()
         this._activeSite = null
@@ -33,40 +29,26 @@ class SgSidebar extends HTMLElement {
 
     connectedCallback() {
         this.innerHTML = `
-            <nav class="sidebar">
-                <div class="sidebar-sites">
-                    ${this._renderSites()}
-                </div>
-                <div class="sidebar-bottom">
-                    <button class="sidebar-btn" data-action="settings" title="Settings">
-                        ${SETTINGS_ICON}
-                    </button>
-                </div>
+            <nav class="tab-bar">
+                ${this._renderTabs()}
             </nav>
         `
 
         this.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-site]')
-            if (btn) {
-                this._selectSite(btn.dataset.site)
-                return
-            }
-            const action = e.target.closest('[data-action]')
-            if (action) {
-                EventBus.emit('action', { action: action.dataset.action })
-            }
+            if (btn) this._selectSite(btn.dataset.site)
         })
 
-        // Listen for external site selection
         EventBus.on('select-site', (e) => {
             this._selectSite(e.detail.siteId)
         })
     }
 
-    _renderSites() {
+    _renderTabs() {
         return Object.entries(SITE_ICONS).map(([id, icon]) => `
-            <button class="sidebar-btn" data-site="${id}" title="${id.charAt(0).toUpperCase() + id.slice(1)}">
+            <button class="tab-btn" data-site="${id}">
                 ${icon}
+                <span class="tab-label">${id.charAt(0).toUpperCase() + id.slice(1)}</span>
             </button>
         `).join('')
     }
@@ -80,4 +62,4 @@ class SgSidebar extends HTMLElement {
     }
 }
 
-customElements.define('sg-sidebar', SgSidebar)
+customElements.define('sg-tab-bar', SgTabBar)

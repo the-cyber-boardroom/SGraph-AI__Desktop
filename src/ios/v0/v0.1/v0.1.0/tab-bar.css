@@ -1,0 +1,38 @@
+.tab-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 56px;
+    background: var(--sidebar-bg);
+    border-top: 1px solid var(--sg-border);
+    /* Safe area: tab bar doesn't go under the home indicator */
+    padding-bottom: env(safe-area-inset-bottom);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    height: 100%;
+    color: var(--sg-text-dim);
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tab-btn:active {
+    opacity: 0.7;
+}
+
+.tab-btn.active {
+    color: var(--sg-accent);
+}
+
+.tab-label {
+    font-size: 10px;
+    font-weight: 500;
+}

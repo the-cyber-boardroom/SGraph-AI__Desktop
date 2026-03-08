@@ -1,0 +1,59 @@
+.app-shell-ios {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.app-content-ios {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--sg-bg);
+    /* Safe area: content doesn't go under the notch */
+    padding-top: env(safe-area-inset-top);
+}
+
+/* Welcome screen */
+.welcome-screen-ios {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-screen-ios .welcome-content {
+    text-align: center;
+    padding: 20px;
+}
+
+.welcome-screen-ios .welcome-logo {
+    font-size: 36px;
+    font-weight: 300;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+}
+
+.welcome-screen-ios .welcome-sg {
+    color: var(--sg-accent);
+    font-weight: 600;
+}
+
+.welcome-screen-ios .welcome-slash {
+    color: var(--sg-text-dim);
+    margin: 0 2px;
+}
+
+.welcome-screen-ios .welcome-product {
+    color: var(--sg-text);
+}
+
+.welcome-screen-ios .welcome-text {
+    color: var(--sg-text-dim);
+    font-size: 16px;
+}

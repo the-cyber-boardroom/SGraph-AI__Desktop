@@ -1,7 +1,7 @@
-import '/sidebar/v0.1.0/sidebar.js'
-import '/status-bar/v0.1.0/status-bar.js'
-import { SiteManager } from '/lib/site-manager.js'
-import { EventBus }    from '/lib/event-bus.js'
+import '/desktop/v0/v0.1/v0.1.0/sidebar.js'
+import '/desktop/v0/v0.1/v0.1.0/status-bar.js'
+import { SiteManager } from '/core/lib/site-manager.js'
+import { EventBus }    from '/core/lib/event-bus.js'
 
 /** Site URL map */
 const SITE_URLS = {

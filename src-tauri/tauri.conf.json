@@ -9,6 +9,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "url": "desktop/index.html",
         "title": "SGraph Desktop",
         "width": 1200,
         "height": 800,

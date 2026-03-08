@@ -1,4 +1,4 @@
-import { EventBus } from '/lib/event-bus.js'
+import { EventBus } from '/core/lib/event-bus.js'
 
 /**
  * Status bar component showing current site URL and connection status.
