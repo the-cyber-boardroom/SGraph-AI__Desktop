@@ -72,7 +72,8 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
           # Include version in the app name so different builds don't collide in Finder
-          sed -i '' "s/\"productName\": \"SGraph Desktop\"/\"productName\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          sed -i '' "s/\"productName\": \"SGraph Desktop[^\"]*\"/\"productName\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          sed -i '' "s/\"title\": \"SGraph Desktop[^\"]*\"/\"title\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
           echo "Product name: SGraph Desktop $VERSION"
 
       - name: Import Apple certificate
