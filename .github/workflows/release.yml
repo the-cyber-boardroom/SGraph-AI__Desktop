@@ -1,12 +1,10 @@
 name: Release (Production)
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version tag (e.g. v0.1.0)'
+        description: 'Version tag (e.g. v0.1.6)'
         required: true
         type: string
 
@@ -30,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -145,25 +145,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Determine release tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          fi
+          pattern: SGraph-Desktop-*-dmg
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "SGraph Desktop ${{ steps.tag.outputs.tag }}"
+          tag_name: ${{ inputs.tag }}
+          name: "SGraph Desktop ${{ steps.version.outputs.version }}"
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -171,7 +169,7 @@ jobs:
             artifacts/SGraph-Desktop-aarch64-dmg/*.dmg
             artifacts/SGraph-Desktop-x86_64-dmg/*.dmg
           body: |
-            ## SGraph Desktop ${{ steps.tag.outputs.tag }}
+            ## SGraph Desktop ${{ steps.version.outputs.version }}
 
             ### Download
 
@@ -185,19 +183,15 @@ jobs:
             1. Download the `.dmg` file for your Mac
             2. Open the DMG and drag **SGraph Desktop** to Applications
             3. Launch from Applications or Spotlight
-            4. macOS will confirm the app has been checked by Apple — click **Open**
 
-            ### What's included
+  update-website:
+    name: Update desktop.sgraph.ai
+    needs: release
+    runs-on: ubuntu-latest
 
-            - Native macOS app shell with sidebar navigation
-            - **SG/Send** — encrypted file sharing
-            - **SG/Vault** — personal vault
-            - **SG/Workspace** — document transformation
-            - **SG/Tools** — browser utilities
-            - All sites load in native WebKit webviews
-            - Signed and notarised by Apple
-
-            ### System Requirements
-
-            - macOS 13.0 (Ventura) or later
-            - Apple Silicon (M1/M2/M3/M4) or Intel (x86_64)
+    steps:
+      - name: Update download links on desktop.sgraph.ai
+        run: |
+          echo "TODO: Update desktop.sgraph.ai to point to ${{ inputs.tag }}"
+          echo "This step will be implemented when desktop.sgraph.ai is set up"
+          echo "It should update the download links to point to the latest release DMGs"
