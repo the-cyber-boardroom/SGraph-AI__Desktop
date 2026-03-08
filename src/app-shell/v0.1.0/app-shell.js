@@ -13,7 +13,7 @@ const SITE_URLS = {
 
 /**
  * Main app shell component.
- * Provides sidebar navigation + webview content area.
+ * Provides sidebar navigation + native webview content area.
  */
 class SgAppShell extends HTMLElement {
     constructor() {
@@ -71,6 +71,21 @@ class SgAppShell extends HTMLElement {
             }
         })
 
+        // Settings button → toggle DevTools on active site webview
+        EventBus.on('action', (e) => {
+            if (e.detail.action === 'settings') {
+                this._toggleDevTools()
+            }
+        })
+
+        // Cmd+Option+I → toggle DevTools on active site webview
+        document.addEventListener('keydown', (e) => {
+            if (e.metaKey && e.altKey && e.key === 'i') {
+                e.preventDefault()
+                this._toggleDevTools()
+            }
+        })
+
         // Auto-load send.sgraph.ai on startup
         setTimeout(() => {
             EventBus.emit('select-site', { siteId: 'send' })
@@ -78,13 +93,20 @@ class SgAppShell extends HTMLElement {
         }, 100)
     }
 
-    _onSiteSelected(detail) {
+    async _onSiteSelected(detail) {
         const welcome = this.querySelector('#welcome-screen')
         if (welcome) welcome.style.display = 'none'
 
         const url = SITE_URLS[detail.siteId]
         if (url) {
-            this._siteManager.activate(detail.siteId, url)
+            await this._siteManager.activate(detail.siteId, url)
+        }
+    }
+
+    async _toggleDevTools() {
+        const activeSite = this._siteManager.getActiveSite()
+        if (activeSite) {
+            await window.__TAURI__.core.invoke('toggle_devtools', { siteId: activeSite })
         }
     }
 }

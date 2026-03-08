@@ -1,14 +1,12 @@
 import { EventBus } from './event-bus.js'
 
 /**
- * Manages site switching and webview iframe lifecycle.
- * Each site gets an iframe that loads the remote *.sgraph.ai URL.
- * Only the active site's iframe is visible.
+ * Manages site switching via native Tauri webviews.
+ * Each site gets a dedicated native webview (not an iframe),
+ * which avoids X-Frame-Options restrictions.
  */
 export class SiteManager {
     constructor() {
-        /** @type {Map<string, HTMLIFrameElement>} */
-        this._iframes = new Map()
         /** @type {string|null} */
         this._activeSite = null
         /** @type {HTMLElement|null} */
@@ -16,7 +14,7 @@ export class SiteManager {
     }
 
     /**
-     * Set the container element where iframes are placed
+     * Set the container element (used for welcome screen management)
      * @param {HTMLElement} container
      */
     setContainer(container) {
@@ -24,29 +22,14 @@ export class SiteManager {
     }
 
     /**
-     * Activate a site — create iframe if needed, show it, hide others
+     * Activate a site — creates native webview if needed, shows it, hides others
      * @param {string} siteId - The site ID (e.g., 'send')
      * @param {string} url - The site URL
      */
-    activate(siteId, url) {
+    async activate(siteId, url) {
         if (!this._container) return
 
-        // Create iframe if it doesn't exist yet
-        if (!this._iframes.has(siteId)) {
-            const iframe = document.createElement('iframe')
-            iframe.className = 'site-webview'
-            iframe.setAttribute('data-site', siteId)
-            iframe.src = url
-            iframe.allow = 'clipboard-read; clipboard-write'
-            iframe.style.display = 'none'
-            this._container.appendChild(iframe)
-            this._iframes.set(siteId, iframe)
-        }
-
-        // Hide all iframes, show active one
-        for (const [id, frame] of this._iframes) {
-            frame.style.display = id === siteId ? 'block' : 'none'
-        }
+        await window.__TAURI__.core.invoke('activate_site', { siteId, url })
 
         this._activeSite = siteId
         EventBus.emit('site-activated', { siteId, url })
