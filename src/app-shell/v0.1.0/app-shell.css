@@ -1,0 +1,116 @@
+.app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+sg-sidebar {
+    grid-row: 1 / -1;
+    grid-column: 1;
+}
+
+.app-content {
+    grid-row: 1;
+    grid-column: 2;
+    position: relative;
+    overflow: hidden;
+    background: var(--sg-bg);
+}
+
+sg-status-bar {
+    grid-row: 2;
+    grid-column: 2;
+}
+
+/* Webview iframes */
+.site-webview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+}
+
+/* Welcome screen */
+.welcome-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-content {
+    text-align: center;
+}
+
+.welcome-logo {
+    font-size: 42px;
+    font-weight: 300;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+}
+
+.welcome-sg {
+    color: var(--sg-accent);
+    font-weight: 600;
+}
+
+.welcome-slash {
+    color: var(--sg-text-dim);
+    margin: 0 2px;
+}
+
+.welcome-product {
+    color: var(--sg-text);
+}
+
+.welcome-text {
+    color: var(--sg-text-dim);
+    font-size: 14px;
+    margin-bottom: 32px;
+}
+
+.welcome-sites {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.welcome-site-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border-radius: 12px;
+    background: var(--sg-surface);
+    border: 1px solid var(--sg-border);
+    transition: all 0.15s ease;
+}
+
+.welcome-site-btn:hover {
+    border-color: var(--sg-accent);
+    background: rgba(79, 195, 247, 0.05);
+}
+
+.welcome-site-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--sg-text);
+    margin-bottom: 4px;
+}
+
+.welcome-site-desc {
+    font-size: 12px;
+    color: var(--sg-text-dim);
+}
