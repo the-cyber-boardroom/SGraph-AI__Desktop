@@ -36,7 +36,8 @@ pub fn activate_site(window: tauri::Window, site_id: String, url: String) -> Res
     let content_width = (size.width as f64 / scale) - SIDEBAR_WIDTH;
     let content_height = (size.height as f64 / scale) - STATUS_BAR_HEIGHT;
 
-    let builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed_url));
+    let builder = WebviewBuilder::new(&label, WebviewUrl::External(parsed_url))
+        .disable_drag_drop_handler();
 
     window
         .add_child(
