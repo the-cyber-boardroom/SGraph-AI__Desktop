@@ -1,5 +1,5 @@
 {
-  "productName": "SGraph Desktop",
+  "productName": "SGraph Desktop v0.1.0",
   "version": "0.1.0",
   "identifier": "ai.sgraph.desktop",
   "build": {
@@ -9,7 +9,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "SGraph Desktop",
+        "title": "SGraph Desktop v0.1.0",
         "width": 1200,
         "height": 800,
         "minWidth": 800,

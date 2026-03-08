@@ -47,12 +47,15 @@ jobs:
           restore-keys: |
             rust-deps-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Read version
+      - name: Read version and set product name
         id: version
         run: |
           VERSION=$(cat version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building release: $VERSION"
+          # Include version in the app name so different builds don't collide in Finder
+          sed -i '' "s/\"productName\": \"SGraph Desktop\"/\"productName\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          echo "Product name: SGraph Desktop $VERSION"
 
       - name: Import Apple certificate
         env:
