@@ -50,11 +50,15 @@ jobs:
           echo "Using version: $VERSION"
 
       - name: Import Apple certificate
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "No Apple certificate configured — skipping code signing"
+            exit 0
+          fi
+
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
@@ -77,12 +81,16 @@ jobs:
         run: cargo tauri build --target aarch64-apple-darwin
 
       - name: Notarise app
-        if: ${{ secrets.APPLE_ID != '' }}
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         run: |
+          if [ -z "$APPLE_ID" ]; then
+            echo "No Apple ID configured — skipping notarisation"
+            exit 0
+          fi
+
           xcrun notarytool submit \
             src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg \
             --apple-id "$APPLE_ID" \
