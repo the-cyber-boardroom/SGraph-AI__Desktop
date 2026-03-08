@@ -15,22 +15,31 @@ permissions:
 
 jobs:
   build:
-    name: "Build & Sign macOS (aarch64)"
-    runs-on: macos-14
+    name: "Build & Sign macOS (${{ matrix.arch }})"
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            arch: aarch64
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            arch: x86_64
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - name: Cache Tauri CLI
         uses: actions/cache@v4
         id: cache-tauri-cli
         with:
           path: ~/.cargo/bin/cargo-tauri
-          key: tauri-cli-${{ runner.os }}-${{ runner.arch }}
+          key: tauri-cli-${{ runner.os }}-${{ matrix.arch }}
 
       - name: Install Tauri CLI
         if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
@@ -43,9 +52,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: rust-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src-tauri/Cargo.toml') }}
+          key: rust-deps-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('src-tauri/Cargo.toml') }}
           restore-keys: |
-            rust-deps-${{ runner.os }}-${{ runner.arch }}-
+            rust-deps-${{ runner.os }}-${{ matrix.arch }}-
 
       - name: Read version and set product name
         id: version
@@ -53,8 +62,10 @@ jobs:
           VERSION=$(cat version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building release: $VERSION"
-          # Include version in the app name so different builds don't collide in Finder
-          sed -i '' "s/\"productName\": \"SGraph Desktop\"/\"productName\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          # Inject version into app name and title (not hardcoded in tauri.conf.json)
+          sed -i '' "s/\"productName\": \"SGraph Desktop[^\"]*\"/\"productName\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          sed -i '' "s/\"title\": \"SGraph Desktop[^\"]*\"/\"title\": \"SGraph Desktop $VERSION\"/" src-tauri/tauri.conf.json
+          sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION#v}\"/" src-tauri/tauri.conf.json
           echo "Product name: SGraph Desktop $VERSION"
 
       - name: Import Apple certificate
@@ -86,7 +97,7 @@ jobs:
       - name: Build Tauri app
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: cargo tauri build --target aarch64-apple-darwin
+        run: cargo tauri build --target ${{ matrix.target }}
 
       - name: Notarise DMG
         env:
@@ -100,28 +111,32 @@ jobs:
           fi
 
           xcrun notarytool submit \
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg \
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_PASSWORD" \
             --wait
           xcrun stapler staple \
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-
-      - name: Prepare release assets
-        id: assets
-        run: |
-          DMG_PATH=$(ls src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg)
-          DMG_NAME=$(basename "$DMG_PATH")
-          echo "dmg_path=$DMG_PATH" >> $GITHUB_OUTPUT
-          echo "dmg_name=$DMG_NAME" >> $GITHUB_OUTPUT
-          echo "Release asset: $DMG_NAME"
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SGraph-Desktop-release-dmg
-          path: ${{ steps.assets.outputs.dmg_path }}
+          name: SGraph-Desktop-${{ matrix.arch }}-dmg
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Determine release tag
         id: tag
@@ -140,17 +155,22 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: ${{ steps.assets.outputs.dmg_path }}
+          files: |
+            artifacts/SGraph-Desktop-aarch64-dmg/*.dmg
+            artifacts/SGraph-Desktop-x86_64-dmg/*.dmg
           body: |
             ## SGraph Desktop ${{ steps.tag.outputs.tag }}
 
             ### Download
 
-            Download **${{ steps.assets.outputs.dmg_name }}** below to install SGraph Desktop on macOS (Apple Silicon).
+            | Architecture | Download |
+            |-------------|----------|
+            | **Apple Silicon** (M1/M2/M3/M4) | Download the `aarch64` DMG below |
+            | **Intel** (Core i5/i7/i9) | Download the `x86_64` DMG below |
 
             ### Installation
 
-            1. Download the `.dmg` file below
+            1. Download the `.dmg` file for your Mac
             2. Open the DMG and drag **SGraph Desktop** to Applications
             3. Launch from Applications or Spotlight
             4. macOS will confirm the app has been checked by Apple — click **Open**
@@ -168,4 +188,4 @@ jobs:
             ### System Requirements
 
             - macOS 13.0 (Ventura) or later
-            - Apple Silicon (M1/M2/M3/M4)
+            - Apple Silicon (M1/M2/M3/M4) or Intel (x86_64)
