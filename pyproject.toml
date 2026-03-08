@@ -1,0 +1,22 @@
+[tool.poetry]
+name        = "sgraph-ai-desktop"
+version     = "v0.1.0"
+description = "SGraph_AI__Desktop"
+readme      = "README.md"
+license     = "Apache-2.0"
+authors     = ["The Cyber Boardroom"]
+keywords    = ["sgraph", "desktop", "tauri", "macos", "webview"]
+homepage    = "https://github.com/the-cyber-boardroom/SGraph-AI__Desktop"
+repository  = "https://github.com/the-cyber-boardroom/SGraph-AI__Desktop"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Desktop Environment",
+]
+
+[tool.poetry.dependencies]
+python                         = "^3.12"
+
+[build-system]
+requires = ["poetry-core>=1.9.1"]
+build-backend = "poetry.core.masonry.api"
