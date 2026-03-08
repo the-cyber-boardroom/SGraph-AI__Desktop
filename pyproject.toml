@@ -1,6 +1,6 @@
 [tool.poetry]
 name        = "sgraph-ai-desktop"
-version     = "v0.1.8"
+version     = "v0.1.9"
 description = "SGraph_AI__Desktop"
 readme      = "README.md"
 license     = "Apache-2.0"
