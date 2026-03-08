@@ -8,7 +8,7 @@ const SITE_URLS = {
     send:      'https://send.sgraph.ai',
     vault:     'https://vault.sgraph.ai',
     workspace: 'https://workspace.sgraph.ai',
-    tools:     'https://tools.sgraph.ai',
+    tools:     'https://dev.tools.sgraph.ai',
 }
 
 /**
