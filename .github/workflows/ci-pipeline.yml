@@ -22,6 +22,10 @@ on:
         required: false
         type: number
         default: 5
+      create_release:
+        required: false
+        type: boolean
+        default: false
     secrets:
       APPLE_CERTIFICATE:
         required: false
@@ -187,3 +191,68 @@ jobs:
           name: SGraph-Desktop-${{ matrix.arch }}-app
           path: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
           retention-days: ${{ inputs.artifact_retention_days }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: [increment-tag, build]
+    if: inputs.create_release && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_branch }}
+          fetch-depth: 0
+
+      - name: Fetch latest tags
+        run: git fetch --tags --force
+
+      - name: Get latest tag
+        id: tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$TAG" ]; then
+            echo "No tags found — cannot create release"
+            exit 1
+          fi
+          VERSION=$(cat version)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release tag: $TAG, version: $VERSION"
+
+      - name: Download all DMG artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: SGraph-Desktop-*-dmg
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "SGraph Desktop ${{ steps.tag.outputs.version }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/SGraph-Desktop-aarch64-dmg/*.dmg
+            artifacts/SGraph-Desktop-x86_64-dmg/*.dmg
+          body: |
+            ## SGraph Desktop ${{ steps.tag.outputs.version }}
+
+            ### Download
+
+            | Architecture | Download |
+            |-------------|----------|
+            | **Apple Silicon** (M1/M2/M3/M4) | Download the `aarch64` DMG below |
+            | **Intel** (Core i5/i7/i9) | Download the `x86_64` DMG below |
+
+            ### Installation
+
+            1. Download the `.dmg` file for your Mac
+            2. Open the DMG and drag **SGraph Desktop** to Applications
+            3. Launch from Applications or Spotlight
