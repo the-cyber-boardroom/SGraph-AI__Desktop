@@ -18,6 +18,10 @@ on:
         required: false
         type: number
         default: 90
+      build_timeout_minutes:
+        required: false
+        type: number
+        default: 5
     secrets:
       APPLE_CERTIFICATE:
         required: false
@@ -48,7 +52,7 @@ jobs:
   build:
     name: "Build macOS (${{ matrix.arch }})"
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 5
+    timeout-minutes: ${{ inputs.build_timeout_minutes }}
     needs: [increment-tag]
     if: always() && !failure() && !cancelled()
     strategy:
