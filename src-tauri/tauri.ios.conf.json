@@ -1,0 +1,14 @@
+{
+  "app": {
+    "windows": [
+      {
+        "url": "ios/index.html"
+      }
+    ]
+  },
+  "bundle": {
+    "iOS": {
+      "minimumSystemVersion": "16.0"
+    }
+  }
+}

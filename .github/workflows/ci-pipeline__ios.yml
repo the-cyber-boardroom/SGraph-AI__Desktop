@@ -1,0 +1,159 @@
+name: CI Pipeline - iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'src/ios/**'
+      - 'src/core/**'
+      - 'src-tauri/**'
+      - '.github/workflows/ci-pipeline__ios.yml'
+
+jobs:
+  build-ios:
+    name: "Build iOS (arm64)"
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch latest tags
+        run: git fetch --tags --force
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Cache Tauri CLI
+        uses: actions/cache@v4
+        id: cache-tauri-cli
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-ios
+
+      - name: Install Tauri CLI
+        if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: rust-deps-${{ runner.os }}-ios-${{ hashFiles('src-tauri/Cargo.toml') }}
+          restore-keys: |
+            rust-deps-${{ runner.os }}-ios-
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat version)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+          sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION#v}\"/" src-tauri/tauri.conf.json
+
+      - name: Initialise Tauri iOS project
+        run: |
+          if [ ! -d "src-tauri/gen/apple" ]; then
+            cargo tauri ios init
+          fi
+
+      - name: Import iOS certificate
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          if [ -z "$IOS_CERTIFICATE" ]; then
+            echo "No iOS certificate configured — skipping code signing"
+            echo "Build will produce unsigned .app (simulator only)"
+            exit 0
+          fi
+
+          # Import certificate
+          CERTIFICATE_PATH=$RUNNER_TEMP/ios_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/ios-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          PP_PATH=$RUNNER_TEMP/ios_profile.mobileprovision
+
+          echo -n "$IOS_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$IOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Install provisioning profile
+          if [ -n "$IOS_PROVISIONING_PROFILE" ]; then
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo -n "$IOS_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
+            UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i $PP_PATH))
+            cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          fi
+
+      - name: Build iOS app
+        run: cargo tauri ios build
+        continue-on-error: true
+        id: build
+
+      - name: Build iOS app (unsigned — no signing secrets)
+        if: steps.build.outcome == 'failure'
+        run: cargo tauri ios build -- -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO
+
+      - name: Find build output
+        id: output
+        run: |
+          # Look for .ipa or .app
+          IPA_PATH=$(find src-tauri/gen/apple -name "*.ipa" -type f 2>/dev/null | head -1)
+          APP_PATH=$(find src-tauri/gen/apple -name "*.app" -type d 2>/dev/null | head -1)
+          if [ -n "$IPA_PATH" ]; then
+            echo "artifact_path=$IPA_PATH" >> $GITHUB_OUTPUT
+            echo "artifact_name=SGraph-Desktop-iOS-ipa" >> $GITHUB_OUTPUT
+            echo "Found IPA: $IPA_PATH"
+          elif [ -n "$APP_PATH" ]; then
+            echo "artifact_path=$APP_PATH" >> $GITHUB_OUTPUT
+            echo "artifact_name=SGraph-Desktop-iOS-app" >> $GITHUB_OUTPUT
+            echo "Found app: $APP_PATH"
+          else
+            echo "No iOS build output found"
+            find src-tauri/gen/apple -type f -name "*.ipa" -o -name "*.app" 2>/dev/null || true
+          fi
+
+      - name: Upload iOS artifact
+        if: steps.output.outputs.artifact_path
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.output.outputs.artifact_name }}
+          path: ${{ steps.output.outputs.artifact_path }}
+          retention-days: 7
+
+      - name: Upload to TestFlight
+        if: steps.output.outputs.artifact_name == 'SGraph-Desktop-iOS-ipa'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_ID" ]; then
+            echo "No Apple ID configured — skipping TestFlight upload"
+            exit 0
+          fi
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ steps.output.outputs.artifact_path }}" \
+            --apiKey "$APPLE_ID" \
+            --apiIssuer "$APPLE_TEAM_ID" \
+            || echo "TestFlight upload failed — check signing configuration"
