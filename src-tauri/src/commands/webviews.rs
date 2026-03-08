@@ -44,7 +44,7 @@ pub fn activate_site(window: tauri::Window, site_id: String, url: String) -> Res
             LogicalPosition::new(SIDEBAR_WIDTH, 0.0),
             LogicalSize::new(content_width, content_height),
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: tauri::Error| e.to_string())?;
 
     Ok(())
 }
