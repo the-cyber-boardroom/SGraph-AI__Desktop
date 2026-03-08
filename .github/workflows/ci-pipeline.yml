@@ -33,9 +33,23 @@ on:
         required: false
 
 jobs:
+  increment-tag:
+    name: Increment Tag
+    runs-on: ubuntu-latest
+    if: inputs.should_increment_tag
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Increment Tag
+        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__increment-tag@dev
+        with:
+          release_type: ${{ inputs.release_type }}
+
   build:
     name: "Build macOS (${{ matrix.arch }})"
     runs-on: ${{ matrix.runner }}
+    needs: [increment-tag]
+    if: always() && !failure() && !cancelled()
     strategy:
       matrix:
         include:
@@ -50,6 +64,9 @@ jobs:
         with:
           ref: ${{ inputs.git_branch }}
           fetch-depth: 0
+
+      - name: Fetch latest tags
+        run: git fetch --tags --force
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -154,16 +171,3 @@ jobs:
           name: SGraph-Desktop-${{ matrix.arch }}-app
           path: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
           retention-days: ${{ inputs.artifact_retention_days }}
-
-  increment-tag:
-    name: Increment Tag
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: inputs.should_increment_tag
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Increment Tag
-        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__increment-tag@dev
-        with:
-          release_type: ${{ inputs.release_type }}
