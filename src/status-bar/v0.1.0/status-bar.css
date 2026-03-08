@@ -1,0 +1,26 @@
+.status-bar {
+    height: 28px;
+    background: var(--sidebar-bg);
+    border-top: 1px solid var(--sg-border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 11px;
+    color: var(--sg-text-dim);
+    user-select: none;
+}
+
+.status-site {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-spacer {
+    flex: 1;
+}
+
+.status-indicator {
+    color: var(--sg-success);
+    font-size: 11px;
+}

@@ -1,0 +1,19 @@
+:root {
+    --sg-bg:         #1a1a2e;
+    --sg-surface:    #16213e;
+    --sg-border:     #0f3460;
+    --sg-text:       #e0e0e0;
+    --sg-text-dim:   #8888aa;
+    --sg-accent:     #4fc3f7;
+    --sg-success:    #66bb6a;
+    --sg-warning:    #ffa726;
+    --sg-error:      #ef5350;
+    --sg-font:       -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --sg-mono:       'SF Mono', 'JetBrains Mono', monospace;
+
+    /* Sidebar */
+    --sidebar-width: 60px;
+    --sidebar-bg:    #111128;
+    --sidebar-hover: #1e1e3f;
+    --sidebar-active: var(--sg-accent);
+}

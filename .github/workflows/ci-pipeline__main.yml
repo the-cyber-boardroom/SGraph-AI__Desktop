@@ -1,0 +1,21 @@
+name: CI Pipeline - MAIN
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-main:
+    uses: ./.github/workflows/ci-pipeline.yml
+    permissions:
+      contents: write
+    with:
+      git_branch          : 'main'
+      release_type        : 'minor'
+      should_increment_tag: true
+      create_release      : true
+    secrets: inherit
