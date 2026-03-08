@@ -46,10 +46,19 @@ jobs:
           release_type: ${{ inputs.release_type }}
 
   build:
-    name: "Build macOS (aarch64)"
-    runs-on: macos-14
+    name: "Build macOS (${{ matrix.arch }})"
+    runs-on: ${{ matrix.runner }}
     needs: [increment-tag]
     if: always() && !failure() && !cancelled()
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            arch: aarch64
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            arch: x86_64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,14 +67,14 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - name: Cache Tauri CLI
         uses: actions/cache@v4
         id: cache-tauri-cli
         with:
           path: ~/.cargo/bin/cargo-tauri
-          key: tauri-cli-${{ runner.os }}-${{ runner.arch }}
+          key: tauri-cli-${{ runner.os }}-${{ matrix.arch }}
 
       - name: Install Tauri CLI
         if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
@@ -78,9 +87,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: rust-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src-tauri/Cargo.toml') }}
+          key: rust-deps-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('src-tauri/Cargo.toml') }}
           restore-keys: |
-            rust-deps-${{ runner.os }}-${{ runner.arch }}-
+            rust-deps-${{ runner.os }}-${{ matrix.arch }}-
 
       - name: Read version and set product name
         id: version
@@ -124,7 +133,7 @@ jobs:
       - name: Build Tauri app
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: cargo tauri build --target aarch64-apple-darwin
+        run: cargo tauri build --target ${{ matrix.target }}
 
       - name: Notarise app
         env:
@@ -138,24 +147,24 @@ jobs:
           fi
 
           xcrun notarytool submit \
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg \
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_PASSWORD" \
             --wait
           xcrun stapler staple \
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SGraph-Desktop-aarch64-dmg
-          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          name: SGraph-Desktop-${{ matrix.arch }}-dmg
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
           retention-days: ${{ inputs.artifact_retention_days }}
 
       - name: Upload .app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SGraph-Desktop-aarch64-app
-          path: src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+          name: SGraph-Desktop-${{ matrix.arch }}-app
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
           retention-days: ${{ inputs.artifact_retention_days }}
