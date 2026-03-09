@@ -82,6 +82,10 @@ jobs:
             exit 0
           fi
 
+          # Fix Tauri-generated build script: cargo removed --silent, use --quiet
+          sed -i '' 's/--silent/--quiet/g' "$PBXPROJ"
+          echo "Patched --silent to --quiet in build scripts"
+
           # Inject development team
           if [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
             sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\"/g" "$PBXPROJ"
@@ -149,9 +153,10 @@ jobs:
         if: steps.signing.outputs.has_signing == 'false'
         run: |
           # Build for simulator — no code signing required
+          # Code signing is disabled via the Xcode project patch above (Manual signing)
+          # and these xcodebuild overrides
           cargo tauri ios build --target aarch64-sim -- \
-            -sdk iphonesimulator \
-            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
