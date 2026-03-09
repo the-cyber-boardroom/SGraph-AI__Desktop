@@ -31,11 +31,16 @@ jobs:
         with:
           targets: aarch64-apple-ios,aarch64-apple-ios-sim
 
+      - name: Cache Tauri CLI
+        uses: actions/cache@v4
+        id: cache-tauri-cli
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-ios-v2
+
       - name: Install Tauri CLI
-        run: |
-          # Use cargo-binstall for pre-built binary (~5s vs ~8min from source)
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-          cargo binstall tauri-cli --no-confirm
+        if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
+        run: cargo install tauri-cli
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
