@@ -55,8 +55,8 @@ jobs:
         with:
           targets: ${{ matrix.rust_target }}
 
-      - name: Cache Tauri CLI
-        uses: actions/cache@v4
+      - name: Restore Tauri CLI cache
+        uses: actions/cache/restore@v4
         id: cache-tauri-cli
         with:
           path: ~/.cargo/bin/cargo-tauri
@@ -65,6 +65,13 @@ jobs:
       - name: Install Tauri CLI
         if: steps.cache-tauri-cli.outputs.cache-hit != 'true'
         run: cargo install tauri-cli
+
+      - name: Save Tauri CLI cache
+        if: always() && steps.cache-tauri-cli.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/cargo-tauri
+          key: tauri-cli-${{ runner.os }}-android-v2
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
