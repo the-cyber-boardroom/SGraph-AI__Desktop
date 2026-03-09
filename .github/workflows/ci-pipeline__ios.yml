@@ -29,7 +29,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
 
       - name: Cache Tauri CLI
         uses: actions/cache@v4
@@ -138,11 +138,12 @@ jobs:
         if: steps.signing.outputs.has_signing == 'true'
         run: cargo tauri ios build
 
-      - name: Build iOS app (unsigned — no IOS_CERTIFICATE)
+      - name: Build iOS app (unsigned — simulator only)
         if: steps.signing.outputs.has_signing == 'false'
         run: |
-          cargo tauri ios build -- \
-            DEVELOPMENT_TEAM="$APPLE_DEVELOPMENT_TEAM" \
+          # Build for simulator — no code signing required
+          cargo tauri ios build --target aarch64-apple-ios-sim -- \
+            -sdk iphonesimulator \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO

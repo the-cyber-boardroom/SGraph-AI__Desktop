@@ -1,6 +1,5 @@
 import '/android/v0/v0.1/v0.1.0/bottom-nav.js'
-import { SiteManager } from '/core/lib/site-manager.js'
-import { EventBus }    from '/core/lib/event-bus.js'
+import { EventBus } from '/core/lib/event-bus.js'
 
 /** Site URL map */
 const SITE_URLS = {
@@ -13,11 +12,14 @@ const SITE_URLS = {
 /**
  * Android app shell component.
  * Full-width content area with Material-style bottom navigation.
+ * On mobile, sites load in iframes (no native multi-webview support).
  */
 class SgAppShellAndroid extends HTMLElement {
     constructor() {
         super()
-        this._siteManager = new SiteManager()
+        /** @type {Map<string, HTMLIFrameElement>} */
+        this._iframes = new Map()
+        this._activeSite = null
     }
 
     connectedCallback() {
@@ -37,9 +39,6 @@ class SgAppShellAndroid extends HTMLElement {
             </div>
         `
 
-        const container = this.querySelector('#webview-container')
-        this._siteManager.setContainer(container)
-
         EventBus.on('site-selected', (e) => this._onSiteSelected(e.detail))
 
         // Auto-load send.sgraph.ai on startup
@@ -49,14 +48,36 @@ class SgAppShellAndroid extends HTMLElement {
         }, 100)
     }
 
-    async _onSiteSelected(detail) {
+    /**
+     * Load a site by creating or showing its iframe.
+     * @param {{ siteId: string }} detail
+     */
+    _onSiteSelected(detail) {
         const welcome = this.querySelector('#welcome-screen')
         if (welcome) welcome.style.display = 'none'
 
         const url = SITE_URLS[detail.siteId]
-        if (url) {
-            await this._siteManager.activate(detail.siteId, url)
+        if (!url) return
+
+        // Hide current iframe
+        if (this._activeSite && this._iframes.has(this._activeSite)) {
+            this._iframes.get(this._activeSite).style.display = 'none'
         }
+
+        // Create or show target iframe
+        if (!this._iframes.has(detail.siteId)) {
+            const iframe = document.createElement('iframe')
+            iframe.className = 'site-frame'
+            iframe.src = url
+            iframe.setAttribute('allow', 'clipboard-read; clipboard-write')
+            this.querySelector('#webview-container').appendChild(iframe)
+            this._iframes.set(detail.siteId, iframe)
+        } else {
+            this._iframes.get(detail.siteId).style.display = 'block'
+        }
+
+        this._activeSite = detail.siteId
+        EventBus.emit('site-activated', { siteId: detail.siteId, url })
     }
 }
 
