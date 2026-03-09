@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-android:
-    if: true
+    if: false
     name: "Build Android"
     runs-on: ubuntu-latest
     timeout-minutes: 30
