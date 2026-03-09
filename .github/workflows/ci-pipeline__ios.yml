@@ -99,6 +99,15 @@ jobs:
           sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
           echo "Set signing style to Manual"
 
+          # Disable code signing for unsigned/simulator builds
+          # (these are build settings in the pbxproj, not CLI args)
+          if [ -z "$APPLE_DEVELOPMENT_TEAM" ]; then
+            sed -i '' 's/CODE_SIGN_IDENTITY = ".*"/CODE_SIGN_IDENTITY = ""/g' "$PBXPROJ"
+            # Add CODE_SIGNING_REQUIRED = NO and CODE_SIGNING_ALLOWED = NO
+            sed -i '' 's/CODE_SIGN_IDENTITY = ""/CODE_SIGN_IDENTITY = "";\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGNING_ALLOWED = NO/g' "$PBXPROJ"
+            echo "Disabled code signing in build settings"
+          fi
+
       - name: Check iOS signing configuration
         id: signing
         env:
@@ -153,12 +162,8 @@ jobs:
         if: steps.signing.outputs.has_signing == 'false'
         run: |
           # Build for simulator — no code signing required
-          # Code signing is disabled via the Xcode project patch above (Manual signing)
-          # and these xcodebuild overrides
-          cargo tauri ios build --target aarch64-sim -- \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          # Code signing is disabled via the Xcode project patch above
+          cargo tauri ios build --target aarch64-sim
 
       - name: Find build output
         id: output
