@@ -142,7 +142,7 @@ jobs:
         if: steps.signing.outputs.has_signing == 'false'
         run: |
           # Build for simulator — no code signing required
-          cargo tauri ios build --target aarch64-apple-ios-sim -- \
+          cargo tauri ios build --target aarch64-sim -- \
             -sdk iphonesimulator \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
