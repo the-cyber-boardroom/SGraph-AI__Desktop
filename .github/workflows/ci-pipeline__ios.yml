@@ -67,16 +67,26 @@ jobs:
             cargo tauri ios init
           fi
 
-      - name: Inject development team into Xcode project
+      - name: Patch Xcode project for CI builds
         run: |
-          # Tauri reads APPLE_DEVELOPMENT_TEAM env var, but also patch pbxproj directly
           PBXPROJ="src-tauri/gen/apple/sgraph-desktop.xcodeproj/project.pbxproj"
-          if [ -f "$PBXPROJ" ] && [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
-            # Set DEVELOPMENT_TEAM in all build configurations
+          if [ ! -f "$PBXPROJ" ]; then
+            echo "No pbxproj found — skipping patch"
+            exit 0
+          fi
+
+          # Inject development team
+          if [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
             sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\"/g" "$PBXPROJ"
             sed -i '' "s/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\";/g" "$PBXPROJ"
-            echo "Injected DEVELOPMENT_TEAM=$APPLE_DEVELOPMENT_TEAM into Xcode project"
+            echo "Injected DEVELOPMENT_TEAM=$APPLE_DEVELOPMENT_TEAM"
           fi
+
+          # Switch from automatic to manual signing (prevents Xcode from
+          # looking for accounts and provisioning profiles)
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic/CODE_SIGN_STYLE = Manual/g' "$PBXPROJ"
+          sed -i '' 's/ProvisioningStyle = Automatic/ProvisioningStyle = Manual/g' "$PBXPROJ"
+          echo "Set signing style to Manual"
 
       - name: Check iOS signing configuration
         id: signing
