@@ -17,6 +17,8 @@ jobs:
     name: "Build iOS (arm64)"
     runs-on: macos-15
     timeout-minutes: 30
+    env:
+      APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,16 +67,28 @@ jobs:
             cargo tauri ios init
           fi
 
-      - name: Check signing configuration
+      - name: Inject development team into Xcode project
+        run: |
+          # Tauri reads APPLE_DEVELOPMENT_TEAM env var, but also patch pbxproj directly
+          PBXPROJ="src-tauri/gen/apple/sgraph-desktop.xcodeproj/project.pbxproj"
+          if [ -f "$PBXPROJ" ] && [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
+            # Set DEVELOPMENT_TEAM in all build configurations
+            sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\"/g" "$PBXPROJ"
+            sed -i '' "s/DEVELOPMENT_TEAM = ;/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\";/g" "$PBXPROJ"
+            echo "Injected DEVELOPMENT_TEAM=$APPLE_DEVELOPMENT_TEAM into Xcode project"
+          fi
+
+      - name: Check iOS signing configuration
         id: signing
         env:
           IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
         run: |
           if [ -n "$IOS_CERTIFICATE" ]; then
             echo "has_signing=true" >> $GITHUB_OUTPUT
+            echo "iOS distribution certificate found"
           else
             echo "has_signing=false" >> $GITHUB_OUTPUT
-            echo "No iOS certificate configured — will build unsigned (simulator only)"
+            echo "No IOS_CERTIFICATE secret — building unsigned (simulator only)"
           fi
 
       - name: Import iOS certificate
@@ -87,7 +101,6 @@ jobs:
           CERTIFICATE_PATH=$RUNNER_TEMP/ios_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/ios-signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          PP_PATH=$RUNNER_TEMP/ios_profile.mobileprovision
 
           echo -n "$IOS_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
 
@@ -103,19 +116,26 @@ jobs:
 
           # Install provisioning profile
           if [ -n "$IOS_PROVISIONING_PROFILE" ]; then
+            PP_PATH=$RUNNER_TEMP/ios_profile.mobileprovision
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             echo -n "$IOS_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
             UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i $PP_PATH))
             cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+            echo "Installed provisioning profile: $UUID"
           fi
 
       - name: Build iOS app (signed)
         if: steps.signing.outputs.has_signing == 'true'
         run: cargo tauri ios build
 
-      - name: Build iOS app (unsigned)
+      - name: Build iOS app (unsigned — no IOS_CERTIFICATE)
         if: steps.signing.outputs.has_signing == 'false'
-        run: cargo tauri ios build -- CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+        run: |
+          cargo tauri ios build -- \
+            DEVELOPMENT_TEAM="$APPLE_DEVELOPMENT_TEAM" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Find build output
         id: output
@@ -133,7 +153,7 @@ jobs:
             echo "Found app: $APP_PATH"
           else
             echo "No iOS build output found"
-            find src-tauri/gen/apple -type f -name "*.ipa" -o -name "*.app" 2>/dev/null || true
+            find src-tauri/gen/apple -type f -name "*.ipa" -o -type d -name "*.app" 2>/dev/null || true
           fi
 
       - name: Upload iOS artifact
